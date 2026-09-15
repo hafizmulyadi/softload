@@ -1,0 +1,42 @@
+services:
+  backend:
+    build: .
+    restart: unless-stopped
+    environment:
+      BACKEND_SECRET: ${BACKEND_SECRET:?Set BACKEND_SECRET in .env}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?Set PUBLIC_BASE_URL in .env}
+      MAX_CONCURRENT: "2"
+      MAX_DURATION: "1800"
+      MAX_JOB_SECONDS: "1200"
+      MAX_FILE_MB: "250"
+    volumes:
+      - downloads:/data
+    expose:
+      - "8080"
+    mem_limit: 2g
+    cpus: 2
+    pids_limit: 128
+    security_opt:
+      - no-new-privileges:true
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      BACKEND_DOMAIN: ${BACKEND_DOMAIN:?Set BACKEND_DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+volumes:
+  downloads:
+  caddy_data:
+  caddy_config:
+
+   
+
+                                                                                                                                             
