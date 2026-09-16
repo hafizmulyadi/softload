@@ -110,8 +110,12 @@ export default async function handler(req, res) {
     return json(response.status, result);
   } catch (error) {
     console.error("SOFTLOAD FETCH ERROR:", error);
+
     return json(502, {
-      error: "Backend tidak dapat dihubungi. Coba lagi sebentar.",
+      error: "Backend tidak dapat dihubungi.",
+      debug: error?.message || String(error),
+      cause: error?.cause?.message || null,
+      code: error?.cause?.code || null,
     });
   }
 }
