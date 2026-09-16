@@ -100,18 +100,31 @@ export default async function handler(req, res) {
     });
     const raw = await response.text();
 
-let result;
+    let result;
 
-try {
-  result = JSON.parse(raw);
-} catch {
-  return json(502, {
-    error: 'Backend mengirim respons non-JSON.',
-    backendStatus: response.status,
-    contentType: response.headers.get('content-type'),
-    preview: raw.slice(0, 300)
-  });
-}
+    try {
+      result = JSON.parse(raw);
+    } catch {
+      return json(502, {
+        error: "Backend mengirim respons non-JSON.",
+        backendStatus: response.status,
+        contentType: response.headers.get("content-type"),
+        preview: raw.slice(0, 300),
+      });
+    }
+
+    if (op === "file" && response.ok) {
+      const url = new URL(result.url);
+
+      if (url.origin !== target.origin || !url.pathname.startsWith("/files/")) {
+        throw new Error("Invalid file location");
+      }
+
+      res.statusCode = 302;
+      res.setHeader("Location", url.href);
+      return res.end();
+    }
+
     return json(response.status, result);
   } catch (error) {
     console.error("SOFTLOAD FETCH ERROR:", error);
