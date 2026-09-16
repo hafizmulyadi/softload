@@ -1,128 +1,111 @@
-# Softload - Vercel + backend unduhan
+# Softload untuk Windows (tanpa Linux)
 
-UI Softload, API Vercel, dan backend yt-dlp/FFmpeg disertakan. Ini bukan simulasi progres atau unduhan.
-Paket ini belum diterbitkan. Agar bekerja, jalankan backend HTTPS dan isi dua environment variable di Vercel.
-Tidak ada API berbayar yang diperlukan oleh kode ini. Hosting server dan domain tetap Anda sediakan.
+Backend berjalan langsung pada Windows 10/11 64-bit atau Windows Server,
+dengan Node.js, FFmpeg, dan yt-dlp.exe. Tidak memerlukan Linux, WSL, Docker, atau bash.
+Web bisa dibuka lokal; integrasi Vercel tetap tersedia.
 
-## Yang tersedia
+## Menjalankan di komputer Windows
 
-- URL YouTube, youtu.be, Shorts: validasi domain dan pembacaan metadata asli.
-- Gambar mini, judul, kanal, durasi, kualitas MP4 yang tersedia.
-- MP4 sampai 1080p, atau MP3 192 kbps.
-- Progres unduhan aktual; saat konversi, indikator menunggu tanpa persentase palsu.
-- Pembatalan proses dan tombol untuk menyimpan file yang selesai.
-- Riwayat berkas siap di browser, tombol hapus, serta mode gelap/terang.
-- File sementara berlaku satu jam. Tautan unduhan bertanda tangan berlaku lima menit dan dibuat ulang saat klik Simpan.
-- Hanya metadata melewati Vercel. File media diunduh langsung dari backend.
-
-## 1. Jalankan backend
-
-Siapkan server Linux dengan Docker Compose, domain/subdomain, dan akses keluar ke YouTube.
-Untuk konfigurasi bawaan, gunakan server setidaknya 2 CPU, RAM 2 GB, dan ruang kosong 10 GB.
-Paket ini menggunakan satu instance backend. Jangan menambah replica dengan volume yang sama.
-
-1. Arahkan DNS subdomain, misalnya api.domain-anda.com, ke IP server.
-2. Salin folder backend ke server, lalu buka terminal di folder tersebut.
+1. Ekstrak ZIP ke folder milik Anda, misalnya Documents\Softload.
+2. Buka PowerShell di folder softload yang berisi skrip berikut.
 3. Jalankan:
 
-   cp .env.example .env
-   openssl rand -hex 32
+   .\Setup-Windows.ps1
+   .\Start-Windows.ps1
 
-4. Edit .env:
+4. Tunggu tulisan "Buka http://127.0.0.1:8081", lalu buka alamat itu di browser.
+5. Tempel URL YouTube, pilih MP4/MP3, tunggu berkas siap, lalu klik Simpan berkas.
+6. Biarkan PowerShell berjalan selama menggunakan web. Ctrl+C menghentikan proses.
 
-   BACKEND_SECRET=hasil_random_dari_perintah_di_atas
-   BACKEND_DOMAIN=api.domain-anda.com
+Jika PowerShell menolak skrip hasil unduhan, periksa isi skrip lalu buka blokir:
+
+   Unblock-File -LiteralPath .\Setup-Windows.ps1
+   Unblock-File -LiteralPath .\Start-Windows.ps1
+   Unblock-File -LiteralPath .\Start-Backend-Windows.ps1
+
+Ikuti kebijakan administrator perangkat jika skrip tetap diblokir.
+Setup memasang Node.js/FFmpeg melalui winget jika belum tersedia, mengunduh yt-dlp.exe
+resmi ke backend\tools, memeriksa checksum, dan membuat secret acak di backend\.env.
+Koneksi internet diperlukan. Installer dependensi mungkin meminta izin administrator.
+Node.js harus versi 22 atau lebih baru. Jika perintah belum dikenali sesudah instalasi,
+tutup lalu buka PowerShell baru dan jalankan setup kembali.
+
+## Menghubungkan Windows ke Vercel
+
+Vercel tidak dapat mengakses 127.0.0.1 di komputer Anda.
+Backend Windows harus memiliki alamat HTTPS publik; komputer harus terus menyala.
+
+1. Jalankan Setup-Windows.ps1.
+2. Arahkan subdomain, misalnya api.domain-anda.com, ke IP publik server Windows.
+3. Pasang Caddy Windows dari https://caddyserver.com/download.
+4. Edit backend\.env; pertahankan secret acak yang sudah dibuat:
+
+   BACKEND_SECRET=secret_yang_sudah_dibuat
    PUBLIC_BASE_URL=https://api.domain-anda.com
 
-   BACKEND_DOMAIN hanya nama domain, tanpa https:// atau path.
-   PUBLIC_BASE_URL adalah alamat HTTPS domain yang sama.
-   Jangan gunakan teks contoh sebagai secret. Jangan unggah .env ke Git.
+5. Edit domain pada backend\Caddyfile.windows.
+6. Izinkan TCP 80/443 untuk Caddy di Windows Firewall. Jika memakai router,
+   teruskan port tersebut ke komputer Windows. Jika koneksi memakai CGNAT,
+   gunakan server Windows ber-IP publik atau layanan tunnel HTTPS permanen.
+7. Pada PowerShell pertama jalankan:
 
-5. Buka port 80 dan 443 pada firewall server.
-6. Jalankan:
+   .\Start-Backend-Windows.ps1
 
-   docker compose up -d --build
-   docker compose logs --tail=100
+8. Pada PowerShell kedua jalankan (sesuaikan lokasi caddy.exe):
 
-7. Buka https://api.domain-anda.com/healthz. Hasilnya harus {"ok":true}.
-   Caddy mengurus sertifikat HTTPS secara otomatis setelah DNS dan port benar.
-   Endpoint healthz hanya memeriksa server hidup, bukan akses YouTube.
+   & 'C:\Tools\Caddy\caddy.exe' run --config .\backend\Caddyfile.windows --adapter caddyfile
 
-Jika penyedia hosting Docker sudah memberi HTTPS dan domain, deploy folder backend dengan Dockerfile,
-set BACKEND_SECRET serta PUBLIC_BASE_URL, dan gunakan port 8080. Caddy/Compose tidak diperlukan.
-Sediakan penyimpanan yang dapat ditulis di /data, setidaknya RAM 2 GB, satu replica.
+9. Periksa https://api.domain-anda.com/healthz. Harus mengembalikan {"ok":true}.
+   Caddy memperoleh sertifikat HTTPS setelah DNS, firewall, dan port siap.
+10. Jangan jalankan Start-Windows.ps1 dan Start-Backend-Windows.ps1 bersamaan:
+    keduanya memakai port backend 8080.
 
-## 2. Deploy web ke Vercel
+Backend mendengarkan 127.0.0.1:8080; akses publik melalui Caddy.
+Skrip tidak mengubah firewall, router, atau DNS secara otomatis.
+Administrator dapat memakai Task Scheduler agar backend dan Caddy mulai otomatis.
 
-1. Ekstrak ZIP dan unggah isi proyek ke repositori Git milik Anda.
-2. Di Vercel, pilih Add New Project dan impor repositori tersebut.
-3. Root Directory: folder yang berisi package.json, vercel.json, api/, public/.
-4. Framework Preset: Other. Build Command: kosong. Output Directory: public.
-5. Tambahkan environment variable untuk Production (dan Preview jika digunakan):
+## Deploy frontend ke Vercel
+
+1. Unggah proyek ke repositori Git. Jangan unggah .env atau backend\tools.
+2. Impor ke Vercel; root berisi package.json, api, public, dan vercel.json.
+3. Framework: Other. Build Command: kosong. Output Directory: public.
+4. Isi environment variable:
 
    BACKEND_URL=https://api.domain-anda.com
-   BACKEND_SECRET=secret_yang_sama_dengan_backend
+   BACKEND_SECRET=secret_yang_sama_dengan_backend_Windows
 
-6. Klik Deploy. Jika variabel diubah kemudian, lakukan Redeploy.
-7. Buka web. Bagian bawah harus menyatakan layanan terhubung.
+5. Deploy. Jika variabel diubah, Redeploy.
 
-BACKEND_SECRET hanya digunakan di fungsi server Vercel. Jangan mengubahnya menjadi variabel publik.
-Jangan mengunggah hanya index.html: folder api dan file konfigurasi juga diperlukan.
+File video diunduh langsung dari Windows melalui tautan bertanda tangan.
+Secret hanya digunakan pada server, bukan variabel publik browser.
 
-## 3. Uji alur sungguhan setelah deploy
+## Fitur dan batas
 
-1. Gunakan tautan video pendek yang boleh Anda unduh.
-2. Periksa judul/durasi dan kualitas yang tersedia.
-3. Pilih MP4 360p, tunggu sampai berkas siap, klik Simpan, lalu putar file tersebut.
-4. Ulangi untuk MP3 dan pastikan audionya dapat diputar.
-5. Coba pembatalan pada video lain; status harus berhenti tanpa berkas siap.
-6. Segarkan halaman: tema dan riwayat tetap ada. Klik Simpan dari riwayat sebelum satu jam.
-7. Uji URL yang salah: harus ditolak tanpa menjalankan perintah ke server.
+- Metadata asli, thumbnail, MP4 sampai 1080p yang tersedia, MP3 192 kbps.
+- Progres, pembatalan, mode gelap, dan riwayat browser.
+- Pembatalan Windows menghentikan yt-dlp dan proses FFmpeg turunannya.
+- Maksimum 30 menit/video, 250 MB/hasil, dua unduhan aktif, 30 pekerjaan tersimpan.
+- Berkas dihapus setelah satu jam atau restart; riwayat browser tetap ada.
+- Riwayat berarti berkas siap, bukan bukti file tersimpan di disk pengguna.
+- Tidak mendukung live atau melewati akses video privat.
+- YouTube dapat membatasi video atau IP server.
+- Sediakan ruang kosong sekitar 10 GB dan RAM sedikitnya 2 GB.
 
-## Batas operasi bawaan
+## Pembaruan dan pengujian
 
-- Durasi video maksimal 30 menit. Live/upcoming tidak didukung.
-- Maksimal dua unduhan aktif dan dua pemeriksaan metadata bersamaan.
-- Maksimal 250 MB per file hasil; proses unduhan dibatasi 20 menit.
-- Maksimal 30 pekerjaan tersimpan, dengan pembersihan setelah satu jam.
-- Restart backend menghapus pekerjaan dan file sementara. Riwayat browser tetap ada, tetapi file lama harus diproses ulang.
-- Ukuran ditampilkan sebagai perkiraan hanya jika YouTube menyediakan ukurannya.
-- Riwayat berarti file telah selesai diproses, bukan bukti browser sudah menyimpan file ke disk.
+Hentikan Softload dan jalankan Setup-Windows.ps1 untuk memperbarui yt-dlp.
+Secret yang sudah ada tidak ditimpa.
 
-## Jika ada masalah
+   node --test --test-isolation=none tests/core.test.mjs tests/ui.test.mjs
 
-- "Backend belum dikonfigurasi": isi variabel Vercel dan Redeploy.
-- "Backend tidak dapat dihubungi": periksa HTTPS, PUBLIC_BASE_URL, secret yang sama, dan log backend.
-- "YouTube membatasi akses": IP server mungkin dibatasi atau video memerlukan autentikasi.
-  Paket ini tidak melewati pembatasan akses. Tidak semua video atau IP hosting dijamin didukung.
-- Kualitas tidak tersedia: pilih kualitas lain dari metadata terbaru.
-- Tombol tempel tidak diizinkan: gunakan tempel manual pada browser.
-- "Server penuh": tunggu proses selesai atau berkas kedaluwarsa.
-
-Perbarui yt-dlp beserta solver EJS dengan membangun ulang image:
-
-   docker compose build --pull --no-cache backend
-   docker compose up -d
-
-Perintah pembaruan/restart menghapus file sementara. Lakukan saat tidak ada unduhan aktif.
-
-## Validasi paket
-
-Pengujian unit dan kontrak API dapat dijalankan dengan Node 22:
-
-   npm test
-
-Pengujian menggunakan metadata dan respons backend buatan untuk memeriksa logika;
-bukan bukti bahwa akses YouTube dari server produksi telah berhasil.
-Pada lingkungan pembuatan paket, Docker dan yt-dlp tidak tersedia, sehingga image Docker,
-konversi media, serta unduhan YouTube langsung belum dapat diuji.
+Tes memakai metadata dan respons contoh. Uji unduhan sungguhan dengan video pendek
+yang boleh Anda unduh, simpan MP4/MP3, lalu putar keduanya.
 
 ## Referensi resmi
 
-- https://github.com/yt-dlp/yt-dlp
+- https://github.com/yt-dlp/yt-dlp/wiki/Installation
 - https://github.com/yt-dlp/yt-dlp/wiki/EJS
-- https://vercel.com/docs/functions/limitations
-- https://vercel.com/docs/project-configuration
+- https://caddyserver.com/docs/running
 
-
-                                                         
+   
+                                                                                                                                                                                                           

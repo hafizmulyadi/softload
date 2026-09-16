@@ -18,7 +18,8 @@ export default async function handler(req, res) {
   let target;
   try {
     target = new URL(base);
-    if (target.protocol !== 'https:' || target.username || target.password || target.search || target.hash) throw new Error();
+    const local = process.env.SOFTLOAD_LOCAL === '1' && target.protocol === 'http:' && target.hostname === '127.0.0.1';
+    if ((!local && target.protocol !== 'https:') || target.username || target.password || target.search || target.hash) throw new Error();
   } catch { return json(503, { error: 'Alamat backend harus berupa HTTPS yang valid.' }); }
   const id = req.query?.id;
   if (['status', 'cancel', 'file'].includes(op) && (typeof id !== 'string' || !/^[a-f0-9]{32}$/.test(id))) return json(400, { error: 'ID proses tidak valid.' });
@@ -50,4 +51,6 @@ export default async function handler(req, res) {
   }
 }
 
-                                                                                                                                                                                                                  
+ 
+    
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               

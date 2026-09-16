@@ -1,34 +1,52 @@
-# ENV
+# =========================
+# Environment / Secrets
+# =========================
 .env
 .env.*
+**/.env
+**/.env.*
+
+# Tetap izinkan file template
 !.env.example
+!**/.env.example
 
-# Backend ENV
-backend/.env
-backend/.env.*
-!backend/.env.example
+# =========================
+# Backend tools / binaries
+# =========================
+backend/tools/
+*.exe
 
+# =========================
 # Node
+# =========================
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# =========================
 # Build
+# =========================
 .next/
 dist/
 build/
 
+# =========================
 # Temporary media/files
+# =========================
 data/
 backend/data/
 tmp/
 temp/
 
+# =========================
 # Editor
+# =========================
 .vscode/
 .idea/
 
+# =========================
 # OS
+# =========================
 .DS_Store
 Thumbs.db
