@@ -161,8 +161,4 @@ function renderHistory() {
 }
 $('clearHistory').onclick = () => { history = []; saveHistory(); };
 renderHistory();
-api('health').then(() => { $('serviceNote').textContent = 'Layanan terhubung. Berkas disimpan sementara selama 1 jam.'; }).catch(e => { $('serviceNote').textContent = e.message; });
-
-  
-   
-                         
+api('health').then(() => { $('serviceNote').textContent = 'dowload yang halal aja ya rek'; }).catch(e => { $('serviceNote').textContent = e.message; });
