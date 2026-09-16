@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 
 const routes = {
-  health: ['GET', '/health'], info: ['POST', '/info'],
+  health: ['GET', '/healthz'], info: ['POST', '/info'],
   create: ['POST', '/jobs'], status: ['GET', '/jobs/'],
   cancel: ['DELETE', '/jobs/'], file: ['GET', '/jobs/']
 };
